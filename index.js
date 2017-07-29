@@ -20,31 +20,22 @@ const mapMethodName = (() => {
   }
 })()
 
-const removeReactImport = (t, path) => {
-  path.traverse({
-    ImportDeclaration(path) {
-      const specifiers = path.get('specifiers')
-      const source = path.get('source')
-
-      if (!t.isStringLiteral(source) || source.node.value !== 'react') {
-        return
-      }
-
-      path.remove()
-    }
-  })
-}
-
-const removeReactDOMImport = (t, path) => {
+const removeImports = (t, path) => {
   path.traverse({
     ImportDeclaration(path) {
       const source = path.get('source')
 
-      if (!t.isStringLiteral(source) || source.node.value !== 'react-dom') {
+      if (!t.isStringLiteral(source)) {
         return
       }
 
-      path.replaceWith(t.importDeclaration([t.importDefaultSpecifier(t.identifier('Vue'))], t.stringLiteral('vue')))
+      const name = source.node.value
+
+      if (name === 'react-dom') {
+        path.replaceWith(t.importDeclaration([t.importDefaultSpecifier(t.identifier('Vue'))], t.stringLiteral('vue')))
+      } else if (name === 'react') {
+        path.remove()
+      }
     }
   })
 }
@@ -358,8 +349,6 @@ module.exports = ({ types: t }) => {
       Program(path) {
         const componentIdentifier = getImportIdentifier(t, path, 'react', 'Component')
         const renderIdentifier = getImportIdentifier(t, path, 'react-dom', 'render')
-        removeReactImport(t, path)
-        removeReactDOMImport(t, path)
 
         let defaultExport = null
         path.traverse({
@@ -412,6 +401,8 @@ module.exports = ({ types: t }) => {
             }
           }
         })
+
+        removeImports(t, path)
       }
     }
   }
