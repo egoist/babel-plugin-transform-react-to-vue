@@ -224,3 +224,19 @@ class App extends Component {}
 render(<App />, document.getElementById('root'))
 `
 )
+
+transpileTest(
+  'constructor to created',
+  `
+import React, { Component } from 'react'
+
+class App extends Component {
+  constructor(props) {
+    this.state = {
+      count: props.count
+    }
+    this.something = something
+  }
+}
+`
+)
