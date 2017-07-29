@@ -10,7 +10,8 @@
   "files": ["index.js"],
   "scripts": {
     "test": "ava && npm run lint",
-    "lint": "xo"
+    "lint": "xo",
+    "cov": "nyc --reporter=lcov ava"
   },
   "author": "egoist <0x142857@gmail.com>",
   "license": "MIT",
@@ -22,6 +23,7 @@
     "babel-plugin-syntax-jsx": "next",
     "babel-plugin-syntax-object-rest-spread": "next",
     "eslint-config-rem": "^3.0.0",
+    "nyc": "^11.0.3",
     "xo": "^0.18.0"
   },
   "xo": {
