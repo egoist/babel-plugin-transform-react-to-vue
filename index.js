@@ -30,19 +30,26 @@ const removeReactImport = (t, path) => {
         return
       }
 
-      specifiers.forEach(specifier => {
-        if (t.isImportDefaultSpecifier(specifier)) {
-          specifier.remove()
-          if (specifiers.length === 1) {
-            path.remove()
-          }
-        }
-      })
+      path.remove()
     }
   })
 }
 
-const getReactComponentIdentifier = (t, path) => {
+const removeReactDOMImport = (t, path) => {
+  path.traverse({
+    ImportDeclaration(path) {
+      const source = path.get('source')
+
+      if (!t.isStringLiteral(source) || source.node.value !== 'react-dom') {
+        return
+      }
+
+      path.replaceWith(t.importDeclaration([t.importDefaultSpecifier(t.identifier('Vue'))], t.stringLiteral('vue')))
+    }
+  })
+}
+
+const getImportIdentifier = (t, path, moduleName, identifier) => {
   let result = null
 
   path.traverse({
@@ -50,32 +57,21 @@ const getReactComponentIdentifier = (t, path) => {
       const specifiers = path.get('specifiers')
       const source = path.get('source')
 
-      if (
-        t.isStringLiteral(source) &&
-        source.node.value === 'react-dom'
-      ) {
-        path.replaceWith(t.importDeclaration([t.importDefaultSpecifier(t.identifier('Vue'))], t.stringLiteral('vue')))
-        return
-      }
-
-      if (!t.isStringLiteral(source) || source.node.value !== 'react') {
+      if (!t.isStringLiteral(source) || source.node.value !== moduleName) {
         return
       }
 
       specifiers.forEach(specifier => {
-        if (!t.isImportSpecifier(specifier)) {
+        if (t.isImportDefaultSpecifier(specifier)) {
+          result = identifier
           return
         }
 
         const imported = specifier.get('imported')
         const local = specifier.get('local')
 
-        if (t.isIdentifier(imported) && imported.node.name === 'Component' && t.isIdentifier(local)) {
+        if (t.isIdentifier(imported) && imported.node.name === identifier && t.isIdentifier(local)) {
           result = local.node.name
-          specifier.remove()
-          if (specifiers.length === 1) {
-            path.remove()
-          }
         }
       })
     }
@@ -360,8 +356,11 @@ module.exports = ({ types: t }) => {
   return {
     visitor: {
       Program(path) {
+        const componentIdentifier = getImportIdentifier(t, path, 'react', 'Component')
+        const renderIdentifier = getImportIdentifier(t, path, 'react-dom', 'render')
         removeReactImport(t, path)
-        const componentIdentifier = getReactComponentIdentifier(t, path)
+        removeReactDOMImport(t, path)
+
         let defaultExport = null
         path.traverse({
           ExportDefaultDeclaration(path) {
@@ -388,9 +387,9 @@ module.exports = ({ types: t }) => {
                 t.isIdentifier(object) &&
                 t.isIdentifier(property) &&
                 object.node.name === 'ReactDOM' &&
-                property.node.name === 'render'
+                property.node.name === renderIdentifier
             } else if (t.isIdentifier(callee)) {
-              isReactDOMRender = callee.node.name === 'render'
+              isReactDOMRender = callee.node.name === renderIdentifier
             }
 
             if (
