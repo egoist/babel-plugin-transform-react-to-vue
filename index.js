@@ -51,11 +51,8 @@ const getReactComponentIdentifier = (t, path) => {
       const source = path.get('source')
 
       if (
-        specifiers.length === 1 &&
         t.isStringLiteral(source) &&
-        source.node.value === 'react-dom' &&
-        t.isImportDefaultSpecifier(specifiers[0]) &&
-        specifiers[0].node.local.name === 'ReactDOM'
+        source.node.value === 'react-dom'
       ) {
         path.replaceWith(t.importDeclaration([t.importDefaultSpecifier(t.identifier('Vue'))], t.stringLiteral('vue')))
         return
@@ -379,16 +376,25 @@ module.exports = ({ types: t }) => {
           },
           CallExpression(path) {
             const callee = path.get('callee')
-            const object = callee.get('object')
-            const property = callee.get('property')
-            const computed = callee.node.computed
+
+            let isReactDOMRender
+
+            if (t.isMemberExpression(callee)) {
+              const object = callee.get('object')
+              const property = callee.get('property')
+              const computed = callee.node.computed
+
+              isReactDOMRender = !computed &&
+                t.isIdentifier(object) &&
+                t.isIdentifier(property) &&
+                object.node.name === 'ReactDOM' &&
+                property.node.name === 'render'
+            } else if (t.isIdentifier(callee)) {
+              isReactDOMRender = callee.node.name === 'render'
+            }
 
             if (
-              !computed &&
-              t.isIdentifier(object) &&
-              t.isIdentifier(property) &&
-              object.node.name === 'ReactDOM' &&
-              property.node.name === 'render'
+              isReactDOMRender
             ) {
               const [jsx, el] = path.get('arguments')
               path.replaceWith(
