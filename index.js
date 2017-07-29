@@ -99,7 +99,7 @@ const convertReactBody = (t, path) => {
         t.isIdentifier(property) &&
         property.node.name === 'children'
       ) {
-        path.replaceWith(t.memberExpression(t.thisExpression(), t.Identifier('$children')))
+        path.replaceWith(t.memberExpression(t.thisExpression(), t.identifier('$children')))
       } else if (t.isThisExpression(object) && t.isIdentifier(property) && property.node.name === 'state') {
         property.replaceWith(t.identifier('$data'))
       } else if (t.isThisExpression(object) && t.isIdentifier(property) && property.node.name === 'props') {
@@ -132,7 +132,7 @@ const convertReactBody = (t, path) => {
           }
           const childrenIdentifier = propertyPath.get('value').node
 
-          const declarator = t.VariableDeclarator(
+          const declarator = t.variableDeclarator(
             childrenIdentifier,
             t.memberExpression(t.thisExpression(), t.identifier('$children'))
           )
