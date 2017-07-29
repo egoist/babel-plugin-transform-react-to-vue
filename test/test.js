@@ -30,6 +30,7 @@ class App extends Some {
       }
     }
   }
+  someRandomProp = 'not used'
   myMethod1(a, b) {
     return a + b
   }
@@ -53,7 +54,7 @@ class App extends Some {
     })
   dec = () => {
     console.log('what will happen?')
-    this.setState({ count: this.state.count + 0, hello: 'yay!' })
+    this.setState({ count: this.state.count + 0, ['hell' + 'o']: 'yay!' })
   }
   render() {
     return (
@@ -74,5 +75,68 @@ class App extends Some {
 
 ReactDOM.render(<App />, document.getElementById('root'))
 
+`
+)
+
+transpileTest(
+  'Parameter-less functional component',
+  `
+import React from 'react'
+
+export default () => <h1>Hello World</h1>
+`
+)
+
+transpileTest('Ignores namespace import', `import * as r from 'react'`)
+
+transpileTest(
+  'Ignores Component if imported as different name',
+  `
+import React, { Component as Cmp, somethingElse as Component } from 'react'
+
+export default class App extends Component {
+  state = {
+    hello: 'world'
+  }
+  myMethod = () => {
+    this.setState({ hello: 'not world ;)' })
+  }
+  render() {
+    return (
+      <div className="App">
+        <div className="App-header" onClick={this.myMethod}>
+          <h2>
+            Hello {this.state.hello}
+          </h2>
+        </div>
+        <p className="App-intro">
+          To get started, edit <code>src/App.js</code> and save to reload.
+        </p>
+      </div>
+    )
+  }
+  componentDidMount = () => console.log(this.state)
+}
+`
+)
+
+transpileTest(
+  'Component without methods',
+  `
+import React, { Component } from 'react'
+
+export default class App extends Component {
+  state = {
+    hello: 'world'
+  }
+  render() {
+    return (
+      <div className="App">
+        <p>{this.hello}</p>
+      	<button onClick={() => this.setState({hello: 'not world'})}> Mutate </button>
+      </div>
+    )
+  }
+}
 `
 )

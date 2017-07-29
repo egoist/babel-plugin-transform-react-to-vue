@@ -121,9 +121,6 @@ const convertReactBody = (t, path) => {
             return
           }
           const key = property.get('key')
-          if (!t.isIdentifier(key)) {
-            return
-          }
 
           toPatch.push({
             key,
@@ -133,7 +130,11 @@ const convertReactBody = (t, path) => {
 
         const assignments = toPatch.map(({ key, value }) =>
           t.expressionStatement(
-            t.assignmentExpression('=', t.memberExpression(t.thisExpression(), key.node), value.node)
+            t.assignmentExpression(
+              '=',
+              t.memberExpression(t.thisExpression(), key.node, !t.isIdentifier(key.node)),
+              value.node
+            )
           )
         )
 
@@ -148,70 +149,67 @@ const convertReactComponent = (t, path, isDefaultExport) => {
   const vueBody = []
 
   const reactBody = path.get('body')
+  const methods = []
 
-  if (t.isClassBody(reactBody)) {
-    const methods = []
+  reactBody.get('body').forEach(reactProperty => {
+    const key = reactProperty.get('key')
 
-    reactBody.get('body').forEach(reactProperty => {
-      const key = reactProperty.get('key')
-
-      if (
-        // normal methods
-        t.isClassMethod(reactProperty) &&
-        reactProperty.node.kind === 'method' &&
-        t.isIdentifier(key)
-      ) {
-        const body = reactProperty.get('body')
-        const params = reactProperty.node.params
-        convertReactBody(t, reactProperty.get('body'))
-        const newMethod = t.objectMethod('method', mapMethodName(t, key.node), params, body.node)
-        newMethod.async = reactProperty.node.async
-        newMethod.generator = reactProperty.node.generator
-        if (isSpecialMethod(key.node.name)) {
-          vueBody.push(newMethod)
-        } else {
-          methods.push(newMethod)
-        }
-      } else if (
-        // bound-to-class methods
-        t.isClassProperty(reactProperty) &&
-        !reactProperty.node.static &&
-        !reactProperty.node.computed &&
-        t.isArrowFunctionExpression(reactProperty.get('value'))
-      ) {
-        const arrowFn = reactProperty.get('value')
-        let body = arrowFn.get('body').node
-        if (!t.isBlockStatement(body)) {
-          arrowFn.get('body').replaceWith(t.blockStatement([t.returnStatement(body)]))
-          body = arrowFn.get('body').node
-        }
-        const params = arrowFn.node.params
-        convertReactBody(t, arrowFn.get('body'))
-        const newMethod = t.objectMethod('method', mapMethodName(t, key.node), params, body)
-        newMethod.async = arrowFn.node.async
-        newMethod.generator = arrowFn.node.generator
-        if (isSpecialMethod(key.node.name)) {
-          vueBody.push(newMethod)
-        } else {
-          methods.push(newMethod)
-        }
-      } else if (
-        // state
-        t.isClassProperty(reactProperty) &&
-        !reactProperty.node.static &&
-        !reactProperty.node.computed &&
-        t.isIdentifier(key) &&
-        key.node.name === 'state'
-      ) {
-        vueBody.push(
-          t.objectProperty(t.identifier('data'), t.arrowFunctionExpression([], reactProperty.get('value').node))
-        )
+    if (
+      // normal methods
+      t.isClassMethod(reactProperty) &&
+      reactProperty.node.kind === 'method' &&
+      t.isIdentifier(key)
+    ) {
+      const body = reactProperty.get('body')
+      const params = reactProperty.node.params
+      convertReactBody(t, reactProperty.get('body'))
+      const newMethod = t.objectMethod('method', mapMethodName(t, key.node), params, body.node)
+      newMethod.async = reactProperty.node.async
+      newMethod.generator = reactProperty.node.generator
+      if (isSpecialMethod(key.node.name)) {
+        vueBody.push(newMethod)
+      } else {
+        methods.push(newMethod)
       }
-    })
-
-    if (methods.length > 0) {
-      vueBody.push(t.objectProperty(t.identifier('methods'), t.objectExpression(methods)))
+    } else if (
+      // bound-to-class methods
+      t.isClassProperty(reactProperty) &&
+      !reactProperty.node.static &&
+      !reactProperty.node.computed &&
+      t.isArrowFunctionExpression(reactProperty.get('value'))
+    ) {
+      const arrowFn = reactProperty.get('value')
+      let body = arrowFn.get('body').node
+      if (!t.isBlockStatement(body)) {
+        arrowFn.get('body').replaceWith(t.blockStatement([t.returnStatement(body)]))
+        body = arrowFn.get('body').node
+      }
+      const params = arrowFn.node.params
+      convertReactBody(t, arrowFn.get('body'))
+      const newMethod = t.objectMethod('method', mapMethodName(t, key.node), params, body)
+      newMethod.async = arrowFn.node.async
+      newMethod.generator = arrowFn.node.generator
+      if (isSpecialMethod(key.node.name)) {
+        vueBody.push(newMethod)
+      } else {
+        methods.push(newMethod)
+      }
+    } else if (
+      // state
+      t.isClassProperty(reactProperty) &&
+      !reactProperty.node.static &&
+      !reactProperty.node.computed &&
+      t.isIdentifier(key) &&
+      key.node.name === 'state'
+    ) {
+      vueBody.push(
+        t.objectProperty(t.identifier('data'), t.arrowFunctionExpression([], reactProperty.get('value').node))
+      )
     }
+  })
+
+  if (methods.length > 0) {
+    vueBody.push(t.objectProperty(t.identifier('methods'), t.objectExpression(methods)))
   }
 
   if (isDefaultExport) {
