@@ -143,6 +143,12 @@ const convertReactBody = (t, path, dataIdentifier = '$data') => {
     CallExpression(path) {
       const callee = path.get('callee')
       const args = path.get('arguments')
+
+      if (callee.node.type === 'Super') {
+        path.remove()
+        return
+      }
+
       if (
         t.isMemberExpression(callee) &&
         t.isThisExpression(callee.get('object')) &&
@@ -291,7 +297,7 @@ const convertReactComponent = (t, path, isDefaultExport) => {
       if (reactProperty.node.kind === 'constructor') {
         params = []
         const firstParam = reactProperty.node.params[0]
-        if (t.identifier(firstParam)) {
+        if (t.isIdentifier(firstParam)) {
           body.node.body.unshift(
             t.variableDeclaration('var', [
               t.variableDeclarator(
