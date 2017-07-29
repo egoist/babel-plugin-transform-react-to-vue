@@ -226,7 +226,7 @@ render(<App />, document.getElementById('root'))
 )
 
 transpileTest(
-  'constructor to created',
+  'convert constructor() to data()',
   `
 import React, { Component } from 'react'
 
