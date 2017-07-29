@@ -132,7 +132,7 @@ export default class App extends Component {
   render() {
     return (
       <div className="App">
-        <p>{this.hello}</p>
+        <p>{this.props.prop} {this.hello}</p>
       	<button onClick={() => this.setState({hello: 'not world'})}> Mutate </button>
       </div>
     )

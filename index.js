@@ -86,13 +86,15 @@ const getReactComponentIdentifier = (t, path) => {
 
 const convertReactBody = (t, path) => {
   path.traverse({
-    // this.state.* => this.*
+    // this.state.* => this.$data.* and this.props.* => this.$attrs.*
     MemberExpression(path) {
       const object = path.get('object')
       const property = path.get('property')
 
       if (t.isThisExpression(object) && t.isIdentifier(property) && property.node.name === 'state') {
         property.replaceWith(t.identifier('$data'))
+      } else if (t.isThisExpression(object) && t.isIdentifier(property) && property.node.name === 'props') {
+        property.replaceWith(t.identifier('$attrs'))
       }
     },
     // className => class
