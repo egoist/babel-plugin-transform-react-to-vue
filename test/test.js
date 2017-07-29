@@ -9,7 +9,7 @@ const transpile = input =>
 const transpileTest = (name, reactCode) =>
   test(name, t => {
     t.snapshot(reactCode, `${name}: React`)
-    t.snapshot(transpile(reactCode))
+    t.snapshot(transpile(reactCode), `${name}: Vue`)
   })
 
 transpileTest(
