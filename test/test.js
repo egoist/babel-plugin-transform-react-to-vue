@@ -3,7 +3,7 @@ import { transform } from 'babel-core'
 
 const transpile = input =>
   transform(input, {
-    plugins: ['syntax-class-properties', 'syntax-object-rest-spread', 'syntax-jsx', './index']
+    plugins: ['syntax-class-properties', 'syntax-object-rest-spread', 'syntax-jsx', './dist/bundle-test']
   }).code
 
 const transpileTest = (name, reactCode) =>
@@ -42,6 +42,20 @@ class App extends Some {
     this.setState({
       ...this.state,
       some: {
+        ...this.state.some,
+        deep: {
+          ...this.state.some.deep,
+          object: {
+            ...this.state.some.deep.object,
+            hello: 'world2'
+          }
+        }
+      }
+    })
+  deep2 = () =>
+    this.setState({
+      ...this.state,
+      ['some']: {
         ...this.state.some,
         deep: {
           ...this.state.some.deep,
@@ -133,7 +147,7 @@ export default class App extends Component {
     return (
       <div className="App">
         <p>{this.props.prop} {this.hello}</p>
-      	<button onClick={() => this.setState({hello: 'not world'})}> Mutate </button>
+        <button onClick={() => this.setState({hello: 'not world'})}> Mutate </button>
       </div>
     )
   }
@@ -247,6 +261,56 @@ transpileTest(
   `
 import React from 'react'
 
-class App extends React.Component {}
+class App extends React.Component {
+  constructor (props) {
+    super(props)
+    this.state = { hello: 'world' }
+  }
+}
+`
+)
+
+transpileTest(
+  'convert multiple state assignments',
+  `
+import React from 'react'
+
+class App extends React.Component {
+  constructor(props) {
+    super(props)
+    const data = 'hello'
+    calling(data) // for coverage
+    this.state = { hello: 'world' }
+    this.state = { hello: 'not world' }
+  }
+}
+`
+)
+
+transpileTest(
+  'ignore simple classes',
+  `
+import React from 'react'
+
+class App {
+  constructor(props) {
+    super(props)
+    const data = 'hello'
+    calling(nested)(data) // for coverage
+  }
+}
+`
+)
+
+transpileTest(
+  'componentWillReceiveProps',
+  `
+import React, { Component } from 'react'
+
+class App extends Component {
+  componentWillReceiveProps = (nextProps = {}) => {
+    console.log(nextProps)
+  }
+}
 `
 )
